@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Container, TextField, Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent, DialogActions, ThemeProvider, CssBaseline } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent, DialogActions, ThemeProvider, CssBaseline, useMediaQuery, useTheme } from '@mui/material';
 import ExpenseList from './components/ExpenseList';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -18,6 +18,9 @@ import { auth, db } from './firebase.js';
 import { lightTheme, darkTheme } from './theme.js';
 
 export default function App() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [user, setUser] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [amount, setAmount] = useState('');
@@ -143,7 +146,7 @@ export default function App() {
   return (
     <ThemeProvider theme={currentTheme}>
       <CssBaseline />
-      <Container sx={{ pt: 2, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Container sx={{ pt: { xs: 1, sm: 2 }, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header
           user={user}
           onLogout={handleLogout}
@@ -153,12 +156,23 @@ export default function App() {
         />
 
         {/* Authentication Dialog */}
-        <Dialog open={authDialogOpen} onClose={() => setAuthDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>
+        <Dialog 
+          open={authDialogOpen} 
+          onClose={() => setAuthDialogOpen(false)} 
+          maxWidth="sm" 
+          fullWidth
+          PaperProps={{
+            sx: { 
+              m: { xs: 2, sm: 'auto' },
+              width: { xs: 'calc(100% - 32px)', sm: 'auto' }
+            }
+          }}
+        >
+          <DialogTitle sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
             {isRegister ? 'Create Account' : 'Sign In'}
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, mt: 1 }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -166,6 +180,10 @@ export default function App() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
+                size="small"
+                sx={{
+                  '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                }}
               />
               <TextField
                 fullWidth
@@ -174,11 +192,27 @@ export default function App() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                size="small"
+                sx={{
+                  '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                }}
               />
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsRegister(!isRegister)}>
+          <DialogActions sx={{ 
+            p: { xs: 1.5, sm: 2 },
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1, sm: 0 }
+          }}>
+            <Button 
+              onClick={() => setIsRegister(!isRegister)}
+              fullWidth={isMobile}
+              size="small"
+              sx={{ 
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                minHeight: { xs: 44, sm: 32 }
+              }}
+            >
               {isRegister ? 'Already have an account? Sign In' : 'Need an account? Register'}
             </Button>
             <Button
@@ -198,6 +232,12 @@ export default function App() {
               }}
               variant="contained"
               disabled={!email || !password}
+              fullWidth={isMobile}
+              size="small"
+              sx={{ 
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                minHeight: { xs: 44, sm: 32 }
+              }}
             >
               {isRegister ? 'Register' : 'Sign In'}
             </Button>
@@ -206,26 +246,67 @@ export default function App() {
 
         {user ? (
           <>
-            <Box sx={{ mt: 3, mb: 3, flexGrow: 1 }}>
-              <Typography variant="h5" sx={{ mb: 2 }}>
+            <Box sx={{ mt: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 }, flexGrow: 1 }}>
+              <Typography variant="h5" sx={{ 
+                mb: { xs: 1.5, sm: 2 },
+                fontSize: { xs: '1.5rem', sm: '1.75rem' }
+              }}>
                 Add New Expense
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                <TextField label="Amount" value={amount} onChange={e => setAmount(e.target.value)} />
-                <TextField label="Description" value={description} onChange={e => setDescription(e.target.value)} />
-                <TextField type="date" value={date} onChange={e => setDate(e.target.value)} />
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                flexWrap: 'wrap', 
+                gap: { xs: 1.5, sm: 2 }, 
+                mb: { xs: 1.5, sm: 2 }
+              }}>
+                <TextField 
+                  label="Amount" 
+                  value={amount} 
+                  onChange={e => setAmount(e.target.value)} 
+                  size="small"
+                  sx={{ 
+                    width: { xs: '100%', sm: 'auto' },
+                    '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                  }}
+                />
+                <TextField 
+                  label="Description" 
+                  value={description} 
+                  onChange={e => setDescription(e.target.value)} 
+                  size="small"
+                  sx={{ 
+                    width: { xs: '100%', sm: 'auto' },
+                    '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                  }}
+                />
+                <TextField 
+                  type="date" 
+                  value={date} 
+                  onChange={e => setDate(e.target.value)} 
+                  size="small"
+                  sx={{ 
+                    width: { xs: '100%', sm: 'auto' },
+                    '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                  }}
+                />
               </Box>
 
               {/* Category Selection Section */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                <Typography variant="subtitle2" sx={{ 
+                  mb: 1,
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
+                }}>
                   Select Categories:
                 </Typography>
 
                 {/* Existing Categories */}
                 {existingCategories.length > 0 && (
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{
+                      fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                    }}>
                       Existing categories:
                     </Typography>
                     <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -240,7 +321,10 @@ export default function App() {
                           }}
                           color={selectedCategories.includes(category) ? "primary" : "default"}
                           variant={selectedCategories.includes(category) ? "filled" : "outlined"}
-                          sx={{ cursor: 'pointer' }}
+                          sx={{ 
+                            cursor: 'pointer',
+                            fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                          }}
                         />
                       ))}
                     </Box>
@@ -248,7 +332,12 @@ export default function App() {
                 )}
 
                 {/* Add New Category */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'stretch', sm: 'center' }, 
+                  gap: 1 
+                }}>
                   <TextField
                     size="small"
                     label="Add New Category"
@@ -263,7 +352,10 @@ export default function App() {
                         setCategoryInput('');
                       }
                     }}
-                    sx={{ flexGrow: 1 }}
+                    sx={{ 
+                      flexGrow: 1,
+                      '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                    }}
                   />
                   <Button
                     variant="outlined"
@@ -277,6 +369,10 @@ export default function App() {
                         setCategoryInput('');
                       }
                     }}
+                    sx={{ 
+                      minHeight: { xs: 44, sm: 40 },
+                      fontSize: { xs: '0.875rem', sm: '0.875rem' }
+                    }}
                   >
                     Add
                   </Button>
@@ -285,7 +381,9 @@ export default function App() {
                 {/* Selected Categories */}
                 {selectedCategories.length > 0 && (
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{
+                      fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                    }}>
                       Selected categories:
                     </Typography>
                     <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -296,6 +394,9 @@ export default function App() {
                           onDelete={() => setSelectedCategories(selectedCategories.filter((_, i) => i !== index))}
                           color="primary"
                           variant="filled"
+                          sx={{ 
+                            fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                          }}
                         />
                       ))}
                     </Box>
@@ -308,30 +409,78 @@ export default function App() {
                 variant="contained"
                 size="large"
                 disabled={!amount || !description || selectedCategories.length === 0}
+                sx={{ 
+                  minHeight: { xs: 40, sm: 56 },
+                  fontSize: { xs: '0.675rem', sm: '1rem' },
+                  padding: { xs: 1, sm: 2 }
+                }}
               >
                 {editId ? 'Update Expense' : 'Add Expense'}
               </Button>
             </Box>
 
             {/* Edit Expense Dialog */}
-            <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
-              <DialogTitle>Edit Expense</DialogTitle>
+            <Dialog 
+              open={editOpen} 
+              onClose={() => setEditOpen(false)} 
+              maxWidth="md" 
+              fullWidth
+              PaperProps={{
+                sx: { 
+                  m: { xs: 2, sm: 'auto' },
+                  width: { xs: 'calc(100% - 32px)', sm: 'auto' }
+                }
+              }}
+            >
+              <DialogTitle sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>Edit Expense</DialogTitle>
               <DialogContent>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <TextField label="Amount" value={amount} onChange={e => setAmount(e.target.value)} fullWidth />
-                  <TextField label="Description" value={description} onChange={e => setDescription(e.target.value)} fullWidth />
-                  <TextField type="date" value={date} onChange={e => setDate(e.target.value)} fullWidth />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, mt: 1 }}>
+                  <TextField 
+                    label="Amount" 
+                    value={amount} 
+                    onChange={e => setAmount(e.target.value)} 
+                    fullWidth 
+                    size="small"
+                    sx={{
+                      '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                    }}
+                  />
+                  <TextField 
+                    label="Description" 
+                    value={description} 
+                    onChange={e => setDescription(e.target.value)} 
+                    fullWidth 
+                    size="small"
+                    sx={{
+                      '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                    }}
+                  />
+                  <TextField 
+                    type="date" 
+                    value={date} 
+                    onChange={e => setDate(e.target.value)} 
+                    fullWidth 
+                    size="small"
+                    sx={{
+                      '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                    }}
+                  />
 
                   {/* Category Selection in Edit Dialog */}
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ 
+                      mb: 1,
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }}>
                       Select Categories:
                     </Typography>
 
                     {/* Existing Categories */}
                     {existingCategories.length > 0 && (
                       <Box sx={{ mb: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                        }}>
                           Existing categories:
                         </Typography>
                         <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -346,7 +495,10 @@ export default function App() {
                               }}
                               color={selectedCategories.includes(category) ? "primary" : "default"}
                               variant={selectedCategories.includes(category) ? "filled" : "outlined"}
-                              sx={{ cursor: 'pointer' }}
+                              sx={{ 
+                                cursor: 'pointer',
+                                fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                              }}
                             />
                           ))}
                         </Box>
@@ -354,7 +506,12 @@ export default function App() {
                     )}
 
                     {/* Add New Category */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      alignItems: { xs: 'stretch', sm: 'center' }, 
+                      gap: 1 
+                    }}>
                       <TextField
                         size="small"
                         label="Add New Category"
@@ -369,7 +526,10 @@ export default function App() {
                             setCategoryInput('');
                           }
                         }}
-                        sx={{ flexGrow: 1 }}
+                        sx={{ 
+                          flexGrow: 1,
+                          '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                        }}
                       />
                       <Button
                         variant="outlined"
@@ -383,6 +543,10 @@ export default function App() {
                             setCategoryInput('');
                           }
                         }}
+                        sx={{ 
+                          minHeight: { xs: 44, sm: 40 },
+                          fontSize: { xs: '0.875rem', sm: '0.875rem' }
+                        }}
                       >
                         Add
                       </Button>
@@ -391,7 +555,9 @@ export default function App() {
                     {/* Selected Categories */}
                     {selectedCategories.length > 0 && (
                       <Box sx={{ mt: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                        }}>
                           Selected categories:
                         </Typography>
                         <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -402,6 +568,9 @@ export default function App() {
                               onDelete={() => setSelectedCategories(selectedCategories.filter((_, i) => i !== index))}
                               color="primary"
                               variant="filled"
+                              sx={{ 
+                                fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                              }}
                             />
                           ))}
                         </Box>
@@ -410,18 +579,39 @@ export default function App() {
                   </Box>
                 </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleAddExpense} variant="contained">
+              <DialogActions sx={{ 
+                p: { xs: 1.5, sm: 2 },
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1, sm: 0 }
+              }}>
+                <Button 
+                  onClick={handleAddExpense} 
+                  variant="contained"
+                  fullWidth={isMobile}
+                  size="small"
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    minHeight: { xs: 44, sm: 32 }
+                  }}
+                >
                   Save
                 </Button>
-                <Button onClick={() => {
-                  setEditOpen(false);
-                  setEditId(null);
-                  setAmount('');
-                  setDescription('');
-                  setDate('');
-                  setSelectedCategories([]);
-                }}>
+                <Button 
+                  onClick={() => {
+                    setEditOpen(false);
+                    setEditId(null);
+                    setAmount('');
+                    setDescription('');
+                    setDate('');
+                    setSelectedCategories([]);
+                  }}
+                  fullWidth={isMobile}
+                  size="small"
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    minHeight: { xs: 44, sm: 32 }
+                  }}
+                >
                   Cancel
                 </Button>
               </DialogActions>
@@ -444,16 +634,22 @@ export default function App() {
         ) : (
           <Box sx={{
             textAlign: 'center',
-            mt: 8,
-            p: 4,
+            mt: { xs: 4, sm: 8 },
+            p: { xs: 2, sm: 4 },
             borderRadius: 2,
             backgroundColor: 'background.paper',
             flexGrow: 1
           }}>
-            <Typography variant="h4" sx={{ mb: 2 }}>
+            <Typography variant="h4" sx={{ 
+              mb: { xs: 1.5, sm: 2 },
+              fontSize: { xs: '1.75rem', sm: '2.125rem' }
+            }}>
               Welcome to Expense Tracker
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ 
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}>
               Sign in to start tracking your expenses and managing your budget effectively.
             </Typography>
             <Button
@@ -464,7 +660,9 @@ export default function App() {
                 background: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)',
                 '&:hover': {
                   background: 'linear-gradient(45deg, #FF5252, #26A69A)',
-                }
+                },
+                minHeight: { xs: 48, sm: 56 },
+                fontSize: { xs: '0.875rem', sm: '1rem' }
               }}
             >
               Get Started
