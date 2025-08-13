@@ -242,7 +242,12 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">
             My Expenses
-            <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+            <Typography component="span" variant="body2" color="text.secondary"
+              sx={{
+                ml: { xs: 0, sm: 1 }, // 0 on mobile, 1 on larger screens
+                display: { xs: 'inline-block', sm: 'inline' } // inline-block on mobile
+              }}
+            >
               {hasActiveFilters 
                 ? `(Filtered: ${filteredExpenses.length} of ${expenses.length})`
                 : `(${expenses.length} total)`
@@ -270,11 +275,11 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Amount</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Categories</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Amount</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Categories</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
