@@ -68,10 +68,10 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
     return expenses.filter(expense => {
       // Category filter
       if (selectedFilterCategories.length > 0) {
-        const hasMatchingCategory = selectedFilterCategories.some(cat => 
-          expense.categories && expense.categories.includes(cat)
-        );
-        if (!hasMatchingCategory) return false;
+          const hasAllCategories = selectedFilterCategories.every(cat =>
+            expense.categories && expense.categories.includes(cat)
+          );
+          if (!hasAllCategories) return false;
       }
 
       // Date range filter
