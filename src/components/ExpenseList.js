@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Typography, IconButton, Box, Dialog, DialogTitle, DialogContent, 
+  Paper, Typography, IconButton, Box, Dialog, DialogTitle, DialogContent,
   DialogActions, Button, TextField, Chip, FormControl, InputLabel, Select, MenuItem,
   useMediaQuery, useTheme
 } from '@mui/material';
@@ -9,26 +9,32 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FilterListIcon from '@mui/icons-material/FilterList';
 
+const formatDate = (date) => {
+  const offset = date.getTimezoneOffset() * 60000;
+  const localDate = new Date(date.getTime() - offset);
+  return localDate.toISOString().split('T')[0];
+};
+
 const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  
+
   // Filter states with default values
   const [selectedFilterCategories, setSelectedFilterCategories] = useState([]);
   const [filterStartDate, setFilterStartDate] = useState(() => {
     // Set to 1st of current month
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    return firstDayOfMonth.toISOString().split('T')[0];
+    return formatDate(firstDayOfMonth);
   });
   const [filterEndDate, setFilterEndDate] = useState(() => {
     // Set to current date
     const now = new Date();
-    return now.toISOString().split('T')[0];
+    return formatDate(now);
   });
   const [filterAmountMin, setFilterAmountMin] = useState('');
   const [filterAmountMax, setFilterAmountMax] = useState('');
@@ -36,13 +42,13 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
   // Helper function to format numbers in Indian standard (with commas at thousands, lakhs, crores)
   const formatIndianNumber = (number) => {
     if (typeof number !== 'number' || isNaN(number)) return '0';
-    
+
     const numStr = number.toString();
     const [wholePart, decimalPart] = numStr.split('.');
-    
+
     // Add commas to whole part following Indian numbering system
     let formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    
+
     // Return with decimal part if it exists
     return decimalPart ? `${formattedWhole}.${decimalPart}` : formattedWhole;
   };
@@ -58,8 +64,8 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return {
-      start: firstDayOfMonth.toISOString().split('T')[0],
-      end: lastDayOfMonth.toISOString().split('T')[0]
+      start: formatDate(firstDayOfMonth),
+      end: formatDate(lastDayOfMonth)
     };
   };
 
@@ -68,10 +74,10 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
     return expenses.filter(expense => {
       // Category filter
       if (selectedFilterCategories.length > 0) {
-          const hasAllCategories = selectedFilterCategories.every(cat =>
-            expense.categories && expense.categories.includes(cat)
-          );
-          if (!hasAllCategories) return false;
+        const hasAllCategories = selectedFilterCategories.every(cat =>
+          expense.categories && expense.categories.includes(cat)
+        );
+        if (!hasAllCategories) return false;
       }
 
       // Date range filter
@@ -105,18 +111,18 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
     // Reset dates to current month
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    setFilterStartDate(firstDayOfMonth.toISOString().split('T')[0]);
-    setFilterEndDate(now.toISOString().split('T')[0]);
+    setFilterStartDate(formatDate(firstDayOfMonth));
+    setFilterEndDate(formatDate(now));
     setFilterAmountMin('');
     setFilterAmountMax('');
   };
 
   // Check if any filters are active
-  const hasActiveFilters = selectedFilterCategories.length > 0 || 
-                          filterStartDate || 
-                          filterEndDate || 
-                          filterAmountMin || 
-                          filterAmountMax;
+  const hasActiveFilters = selectedFilterCategories.length > 0 ||
+    filterStartDate ||
+    filterEndDate ||
+    filterAmountMin ||
+    filterAmountMax;
 
   const handleDeleteClick = (expense) => {
     setExpenseToDelete(expense);
@@ -146,12 +152,12 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             Filters
           </Typography>
           {hasActiveFilters && (
-            <Button 
-              size="small" 
-              onClick={clearFilters} 
+            <Button
+              size="small"
+              onClick={clearFilters}
               color="secondary"
               variant="outlined"
-              sx={{ 
+              sx={{
                 minWidth: { xs: 'auto', sm: 'auto' },
                 fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 height: { xs: 40, sm: 32 }
@@ -161,17 +167,17 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             </Button>
           )}
         </Box>
-        
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           Default view shows current month's expenses. Use filters below to customize your view.
         </Typography>
 
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           flexDirection: { xs: 'column', sm: 'row' },
-          flexWrap: 'wrap', 
-          gap: { xs: 1.5, sm: 2 }, 
-          alignItems: { xs: 'stretch', sm: 'center' } 
+          flexWrap: 'wrap',
+          gap: { xs: 1.5, sm: 2 },
+          alignItems: { xs: 'stretch', sm: 'center' }
         }}>
           {/* Category Filter */}
           <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
@@ -204,12 +210,12 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             label="From Date"
             value={filterStartDate}
             onChange={(e) => setFilterStartDate(e.target.value)}
-            InputLabelProps={{ 
+            InputLabelProps={{
               shrink: true,
               sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
             }}
             size="small"
-            sx={{ 
+            sx={{
               minWidth: { xs: '100%', sm: 'auto' },
               '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
             }}
@@ -219,17 +225,17 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             label="To Date"
             value={filterEndDate}
             onChange={(e) => setFilterEndDate(e.target.value)}
-            InputLabelProps={{ 
+            InputLabelProps={{
               shrink: true,
               sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
             }}
             size="small"
-            sx={{ 
+            sx={{
               minWidth: { xs: '100%', sm: 'auto' },
               '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
             }}
           />
-          
+
           {/* Quick Filter Buttons */}
           <Button
             variant="outlined"
@@ -239,8 +245,8 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
               setFilterStartDate(start);
               setFilterEndDate(end);
             }}
-            sx={{ 
-              height: { xs: 40, sm: 56 }, 
+            sx={{
+              height: { xs: 40, sm: 56 },
               px: { xs: 1.5, sm: 2 },
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
               minHeight: { xs: 44, sm: 56 } // Better touch target for mobile
@@ -257,7 +263,7 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             onChange={(e) => setFilterAmountMin(e.target.value)}
             InputProps={{ startAdornment: '₹' }}
             size="small"
-            sx={{ 
+            sx={{
               width: { xs: '100%', sm: 120 },
               '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
             }}
@@ -270,7 +276,7 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             onChange={(e) => setFilterAmountMax(e.target.value)}
             InputProps={{ startAdornment: '₹' }}
             size="small"
-            sx={{ 
+            sx={{
               width: { xs: '100%', sm: 120 },
               '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
             }}
@@ -305,10 +311,10 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
 
       {/* Summary Section */}
       <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
-        <Box sx={{ 
+        <Box sx={{
           display: 'flex',
           flexDirection: 'row',
-          justifyContent: 'space-between', 
+          justifyContent: 'space-between',
           alignItems: 'center',
           gap: { xs: 1, sm: 0 }
         }}>
@@ -325,7 +331,7 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
                 mt: { xs: 0.5, sm: 0 }
               }}
             >
-              {hasActiveFilters 
+              {hasActiveFilters
                 ? `(Filtered: ${filteredExpenses.length} of ${expenses.length})`
                 : `(${expenses.length} total)`
               }
@@ -338,9 +344,9 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
       </Paper>
 
       {/* Expenses Table */}
-      <TableContainer component={Paper} sx={{ 
+      <TableContainer component={Paper} sx={{
         overflowX: 'auto',
-        '& .MuiTable-root': { 
+        '& .MuiTable-root': {
           minWidth: { xs: 300, sm: 650 },
           tableLayout: { xs: 'fixed', sm: 'auto' }
         }
@@ -348,7 +354,7 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
         {filteredExpenses.length === 0 ? (
           <Box sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
             <Typography color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-              {hasActiveFilters 
+              {hasActiveFilters
                 ? 'No expenses match the current filters. Try adjusting your filter criteria.'
                 : 'No expenses found. Add your first expense above!'
               }
@@ -356,35 +362,35 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
           </Box>
         ) : (
           <Table sx={{
-            '& .MuiTableCell-root': { 
+            '& .MuiTableCell-root': {
               padding: { xs: '8px', sm: '16px' },
               fontSize: { xs: '0.75rem', sm: '0.875rem' }
             }
           }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ 
-                  fontWeight: 600, 
+                <TableCell sx={{
+                  fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   width: { xs: '20%', sm: 'auto' }
                 }}>Amount</TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 600, 
+                <TableCell sx={{
+                  fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   width: { xs: '20%', sm: 'auto' }
                 }}>Date</TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 600, 
+                <TableCell sx={{
+                  fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   width: { xs: 130, sm: 'auto' }
                 }}>Description</TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 600, 
+                <TableCell sx={{
+                  fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   width: { xs: '20%', sm: 'auto' }
                 }}>Categories</TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 600, 
+                <TableCell sx={{
+                  fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   width: { xs: '15%', sm: 'auto' }
                 }}>Actions</TableCell>
@@ -393,15 +399,15 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             <TableBody>
               {filteredExpenses.map((exp) => (
                 <TableRow key={exp.id}>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     wordBreak: 'break-word'
                   }}>₹{formatIndianNumber(exp.amount)}</TableCell>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     wordBreak: 'break-word'
                   }}>{new Date(exp.date).toLocaleDateString()}</TableCell>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     maxWidth: { xs: 110, sm: 200 },
                     overflow: 'hidden',
@@ -411,19 +417,19 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
                   </TableCell>
                   <TableCell>
                     {exp.categories && exp.categories.length > 0 ? (
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
+                      <Box sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
                         gap: 0.5,
                         maxWidth: { xs: 100, sm: 'none' }
                       }}>
                         {exp.categories.map((cat, index) => (
-                          <Chip 
-                            key={index} 
-                            label={cat} 
-                            size="small" 
+                          <Chip
+                            key={index}
+                            label={cat}
+                            size="small"
                             variant="outlined"
-                            sx={{ 
+                            sx={{
                               fontSize: { xs: '0.625rem', sm: '0.75rem' },
                               maxWidth: { xs: 80, sm: 'none' },
                               '& .MuiChip-label': {
@@ -439,11 +445,11 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => onEdit(exp)}
                         color="primary"
-                        sx={{ 
+                        sx={{
                           padding: { xs: '8px', sm: '8px' },
                           minWidth: { xs: 44, sm: 40 },
                           minHeight: { xs: 44, sm: 40 },
@@ -452,11 +458,11 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
                       >
                         <EditIcon />
                       </IconButton>
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => handleDeleteClick(exp)}
                         color="error"
-                        sx={{ 
+                        sx={{
                           padding: { xs: '8px', sm: '8px' },
                           minWidth: { xs: 44, sm: 40 },
                           minHeight: { xs: 44, sm: 40 },
@@ -475,13 +481,13 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
       </TableContainer>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={deleteDialogOpen} 
+      <Dialog
+        open={deleteDialogOpen}
         onClose={cancelDelete}
         fullWidth
         maxWidth="sm"
         PaperProps={{
-          sx: { 
+          sx: {
             m: { xs: 2, sm: 'auto' },
             width: { xs: 'calc(100% - 32px)', sm: 'auto' },
             maxWidth: { xs: 'calc(100% - 32px)', sm: '600px' }
@@ -497,30 +503,30 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
             This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ 
+        <DialogActions sx={{
           p: { xs: 1.5, sm: 2 },
           flexDirection: { xs: 'column', sm: 'row' },
           gap: { xs: 1, sm: 0 }
         }}>
-          <Button 
-            onClick={cancelDelete} 
+          <Button
+            onClick={cancelDelete}
             color="primary"
             size="small"
             fullWidth={isMobile}
-            sx={{ 
+            sx={{
               fontSize: { xs: '0.875rem', sm: '1rem' },
               minHeight: { xs: 44, sm: 32 }
             }}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={confirmDelete} 
-            color="error" 
+          <Button
+            onClick={confirmDelete}
+            color="error"
             variant="contained"
             size="small"
             fullWidth={isMobile}
-            sx={{ 
+            sx={{
               fontSize: { xs: '0.875rem', sm: '1rem' },
               minHeight: { xs: 44, sm: 32 }
             }}
