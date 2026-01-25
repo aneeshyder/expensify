@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  AppBar, Toolbar, Typography, Button, Box, IconButton,
+  AppBar, Typography, Button, Box, IconButton,
   useTheme, useMediaQuery, Grid,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';

@@ -21,7 +21,7 @@ const ExpenseList = ({ expenses = [], onEdit, onDelete }) => {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
-  const [filterOpen, setFilterOpen] = useState(false);
+
 
   // Filter states with default values
   const [selectedFilterCategories, setSelectedFilterCategories] = useState([]);

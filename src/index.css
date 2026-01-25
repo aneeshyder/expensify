@@ -13,6 +13,10 @@ code {
 }
 
 .analysis-grid>div {
+  &:not(:last-child) {
+    width: 48%;
+  }
+
   @media (max-width: 768px) {
     width: 100% !important;
   }

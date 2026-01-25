@@ -27,7 +27,7 @@ export default function App() {
   const [expenses, setExpenses] = useState([]);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [categories, setCategories] = useState([]);
+
   const [categoryInput, setCategoryInput] = useState('');
   const [date, setDate] = useState('');
   const [email, setEmail] = useState('');
