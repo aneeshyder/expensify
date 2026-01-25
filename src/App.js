@@ -8,34 +8,34 @@
 // - Dark/Light theme switching
 
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Container, TextField, Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent, DialogActions, ThemeProvider, CssBaseline, useMediaQuery, useTheme } from '@mui/material';
+import { Container, Button, Typography, Box, ThemeProvider, CssBaseline, useMediaQuery, useTheme } from '@mui/material';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Analysis from './components/Analysis';
 import ExpenseList from './components/ExpenseList';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import AuthDialog from './components/AuthDialog';
+import ExpenseFormDialog from './components/ExpenseFormDialog';
 import { auth, db } from './firebase.js';
 import { lightTheme, darkTheme } from './theme.js';
 
 export default function App() {
   const theme = useTheme();
+  // eslint-disable-next-line no-unused-vars
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [user, setUser] = useState(null);
   const [expenses, setExpenses] = useState([]);
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
 
-  const [categoryInput, setCategoryInput] = useState('');
-  const [date, setDate] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
-  const [editId, setEditId] = useState(null);
+  // Dialog states
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [editId, setEditId] = useState(null);
+  const [expenseToEdit, setExpenseToEdit] = useState(null);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('isDarkMode');
     return saved ? JSON.parse(saved) : false;
@@ -52,9 +52,6 @@ export default function App() {
     setIsDarkMode(newMode);
     localStorage.setItem('isDarkMode', JSON.stringify(newMode));
   };
-
-  // Login/Register dialog state
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   const handleLoginClick = () => {
     setAuthDialogOpen(true);
@@ -87,57 +84,40 @@ export default function App() {
   }, []);
 
 
-  const handleAddExpense = async () => {
+  const handleAddExpenseSubmit = async (data) => {
     if (!auth.currentUser) return;
 
-    if (editId) {
-      // Update existing expense
-      try {
-        const expenseData = {
-          description,
-          amount: parseFloat(amount),
-          date: date || new Date(),
-          categories: selectedCategories,
-          updatedAt: new Date()
-        };
+    const expenseData = {
+      ...data,
+      uid: auth.currentUser.uid,
+      createdAt: new Date()
+    };
 
-        await updateDoc(doc(db, 'expenses', editId), expenseData);
+    try {
+      await addDoc(collection(db, 'expenses'), expenseData);
+      setAddExpenseOpen(false);
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      alert('Error adding expense');
+    }
+  };
 
-        // Reset edit state
-        setEditId(null);
-        setEditOpen(false);
+  const handleUpdateExpenseSubmit = async (data) => {
+    if (!editId) return;
 
-        // Reset form
-        setAmount('');
-        setDescription('');
-        setDate('');
-        setSelectedCategories([]);
-      } catch (error) {
-        console.error('Error updating expense:', error);
-        alert('Error updating expense');
-      }
-    } else {
-      // Add new expense
-      const expenseData = {
-        description,
-        amount: parseFloat(amount),
-        date: date || new Date(),
-        categories: selectedCategories,
-        uid: auth.currentUser.uid,
-        createdAt: new Date()
-      };
+    const expenseData = {
+      ...data,
+      updatedAt: new Date()
+    };
 
-      try {
-        await addDoc(collection(db, 'expenses'), expenseData);
-        // Reset form
-        setAmount('');
-        setDescription('');
-        setDate('');
-        setSelectedCategories([]);
-      } catch (error) {
-        console.error('Error adding expense:', error);
-        alert('Error adding expense');
-      }
+    try {
+      await updateDoc(doc(db, 'expenses', editId), expenseData);
+      setEditId(null);
+      setExpenseToEdit(null);
+      setEditOpen(false);
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      alert('Error updating expense');
     }
   };
 
@@ -145,36 +125,25 @@ export default function App() {
     await deleteDoc(doc(db, 'expenses', id));
   };
 
-  // Add Expense Dialog state
-  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
-
   const handleOpenAddExpense = () => {
     setAddExpenseOpen(true);
-    // Reset form just in case
-    setAmount('');
-    setDescription('');
-    setDate('');
-    setSelectedCategories([]);
-    setEditId(null);
   };
 
   const handleCloseAddExpense = () => {
     setAddExpenseOpen(false);
-    // Reset form
-    setAmount('');
-    setDescription('');
-    setDate('');
-    setSelectedCategories([]);
   };
 
-  // Wrap original handleAddExpense to close dialog on success
-  const handleAddExpenseSubmit = async () => {
-    await handleAddExpense();
-    if (!editId) { // Only close if it was a new expense (edit has its own close logic, though we might want to unify)
-      setAddExpenseOpen(false);
-    }
+  const handleOpenEditExpense = (expense) => {
+    setEditId(expense.id);
+    setExpenseToEdit(expense);
+    setEditOpen(true);
   };
 
+  const handleCloseEditExpense = () => {
+    setEditOpen(false);
+    setEditId(null);
+    setExpenseToEdit(null);
+  };
 
   return (
     <ThemeProvider theme={currentTheme}>
@@ -189,94 +158,10 @@ export default function App() {
             onLogin={handleLoginClick}
           />
 
-          {/* Authentication Dialog */}
-          <Dialog
+          <AuthDialog
             open={authDialogOpen}
             onClose={() => setAuthDialogOpen(false)}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{
-              sx: {
-                m: { xs: 2, sm: 'auto' },
-                width: { xs: 'calc(100% - 32px)', sm: 'auto' }
-              }
-            }}
-          >
-            <DialogTitle sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-              {isRegister ? 'Create Account' : 'Sign In'}
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, mt: 1 }}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                  }}
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{
-              p: { xs: 1.5, sm: 2 },
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: { xs: 1, sm: 0 }
-            }}>
-              <Button
-                onClick={() => setIsRegister(!isRegister)}
-                fullWidth={isMobile}
-                size="small"
-                sx={{
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  minHeight: { xs: 44, sm: 32 }
-                }}
-              >
-                {isRegister ? 'Already have an account? Sign In' : 'Need an account? Register'}
-              </Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    if (isRegister) {
-                      await createUserWithEmailAndPassword(auth, email, password);
-                    } else {
-                      await signInWithEmailAndPassword(auth, email, password);
-                    }
-                    setAuthDialogOpen(false);
-                    setEmail('');
-                    setPassword('');
-                  } catch (error) {
-                    alert(error.message);
-                  }
-                }}
-                variant="contained"
-                disabled={!email || !password}
-                fullWidth={isMobile}
-                size="small"
-                sx={{
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  minHeight: { xs: 44, sm: 32 }
-                }}
-              >
-                {isRegister ? 'Register' : 'Sign In'}
-              </Button>
-            </DialogActions>
-          </Dialog>
+          />
 
           <Routes>
             <Route path="/" element={
@@ -300,395 +185,28 @@ export default function App() {
                     </Button>
                   </Box>
 
-                  {/* Add Expense Dialog */}
-                  <Dialog
+                  <ExpenseFormDialog
                     open={addExpenseOpen}
                     onClose={handleCloseAddExpense}
-                    maxWidth="md"
-                    fullWidth
-                    PaperProps={{
-                      sx: {
-                        m: { xs: 2, sm: 'auto' },
-                        width: { xs: 'calc(100% - 32px)', sm: 'auto' }
-                      }
-                    }}
-                  >
-                    <DialogTitle>Add New Expense</DialogTitle>
-                    <DialogContent>
-                      <Box sx={{ mt: 1 }}>
-                        <Box sx={{
-                          display: 'flex',
-                          flexDirection: { xs: 'column', sm: 'row' },
-                          flexWrap: 'wrap',
-                          gap: { xs: 1.5, sm: 2 },
-                          mb: { xs: 1.5, sm: 2 }
-                        }}>
-                          <TextField
-                            label="Amount"
-                            value={amount}
-                            onChange={e => setAmount(e.target.value)}
-                            size="small"
-                            sx={{
-                              width: { xs: '100%', sm: 'auto' },
-                              '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                            }}
-                          />
-                          <TextField
-                            label="Description"
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
-                            size="small"
-                            sx={{
-                              width: { xs: '100%', sm: 'auto' },
-                              '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                            }}
-                          />
-                          <TextField
-                            type="date"
-                            value={date}
-                            onChange={e => setDate(e.target.value)}
-                            size="small"
-                            sx={{
-                              width: { xs: '100%', sm: 'auto' },
-                              '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                            }}
-                          />
-                        </Box>
+                    onSubmit={handleAddExpenseSubmit}
+                    existingCategories={existingCategories}
+                    title="Add New Expense"
+                    submitLabel="Add Expense"
+                  />
 
-                        {/* Category Selection Section */}
-                        <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-                          <Typography variant="subtitle2" sx={{
-                            mb: 1,
-                            fontSize: { xs: '0.875rem', sm: '1rem' }
-                          }}>
-                            Select Categories:
-                          </Typography>
-
-                          {/* Existing Categories */}
-                          {existingCategories.length > 0 && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{
-                                fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                              }}>
-                                Existing categories:
-                              </Typography>
-                              <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {existingCategories.map((category) => (
-                                  <Chip
-                                    key={category}
-                                    label={category}
-                                    onClick={() => {
-                                      if (!selectedCategories.includes(category)) {
-                                        setSelectedCategories([...selectedCategories, category]);
-                                      }
-                                    }}
-                                    color={selectedCategories.includes(category) ? "primary" : "default"}
-                                    variant={selectedCategories.includes(category) ? "filled" : "outlined"}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                                    }}
-                                  />
-                                ))}
-                              </Box>
-                            </Box>
-                          )}
-
-                          {/* Add New Category */}
-                          <Box sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column', sm: 'row' },
-                            alignItems: { xs: 'stretch', sm: 'center' },
-                            gap: 1
-                          }}>
-                            <TextField
-                              size="small"
-                              label="Add New Category"
-                              value={categoryInput}
-                              onChange={e => setCategoryInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && categoryInput.trim()) {
-                                  const newCategory = categoryInput.trim();
-                                  if (!selectedCategories.includes(newCategory)) {
-                                    setSelectedCategories([...selectedCategories, newCategory]);
-                                  }
-                                  setCategoryInput('');
-                                }
-                              }}
-                              sx={{
-                                flexGrow: 1,
-                                '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                              }}
-                            />
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => {
-                                if (categoryInput.trim()) {
-                                  const newCategory = categoryInput.trim();
-                                  if (!selectedCategories.includes(newCategory)) {
-                                    setSelectedCategories([...selectedCategories, newCategory]);
-                                  }
-                                  setCategoryInput('');
-                                }
-                              }}
-                              sx={{
-                                minHeight: { xs: 44, sm: 40 },
-                                fontSize: { xs: '0.875rem', sm: '0.875rem' }
-                              }}
-                            >
-                              Add
-                            </Button>
-                          </Box>
-
-                          {/* Selected Categories */}
-                          {selectedCategories.length > 0 && (
-                            <Box sx={{ mt: 2 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{
-                                fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                              }}>
-                                Selected categories:
-                              </Typography>
-                              <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {selectedCategories.map((category, index) => (
-                                  <Chip
-                                    key={`${category}-${index}`}
-                                    label={category}
-                                    onDelete={() => setSelectedCategories(selectedCategories.filter((_, i) => i !== index))}
-                                    color="primary"
-                                    variant="filled"
-                                    sx={{
-                                      fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                                    }}
-                                  />
-                                ))}
-                              </Box>
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-                    </DialogContent>
-                    <DialogActions>
-                      <Button onClick={handleCloseAddExpense}>Cancel</Button>
-                      <Button
-                        onClick={handleAddExpenseSubmit}
-                        variant="contained"
-                        disabled={!amount || !description || selectedCategories.length === 0}
-                      >
-                        Add Expense
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
-
-                  {/* Edit Expense Dialog */}
-                  <Dialog
+                  <ExpenseFormDialog
                     open={editOpen}
-                    onClose={() => setEditOpen(false)}
-                    maxWidth="md"
-                    fullWidth
-                    PaperProps={{
-                      sx: {
-                        m: { xs: 2, sm: 'auto' },
-                        width: { xs: 'calc(100% - 32px)', sm: 'auto' }
-                      }
-                    }}
-                  >
-                    <DialogTitle sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>Edit Expense</DialogTitle>
-                    <DialogContent>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, mt: 1 }}>
-                        <TextField
-                          label="Amount"
-                          value={amount}
-                          onChange={e => setAmount(e.target.value)}
-                          fullWidth
-                          size="small"
-                          sx={{
-                            '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                          }}
-                        />
-                        <TextField
-                          label="Description"
-                          value={description}
-                          onChange={e => setDescription(e.target.value)}
-                          fullWidth
-                          size="small"
-                          sx={{
-                            '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                          }}
-                        />
-                        <TextField
-                          type="date"
-                          value={date}
-                          onChange={e => setDate(e.target.value)}
-                          fullWidth
-                          size="small"
-                          sx={{
-                            '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                          }}
-                        />
+                    onClose={handleCloseEditExpense}
+                    onSubmit={handleUpdateExpenseSubmit}
+                    initialData={expenseToEdit}
+                    existingCategories={existingCategories}
+                    title="Edit Expense"
+                    submitLabel="Save Changes"
+                  />
 
-                        {/* Category Selection in Edit Dialog */}
-                        <Box>
-                          <Typography variant="subtitle2" sx={{
-                            mb: 1,
-                            fontSize: { xs: '0.875rem', sm: '1rem' }
-                          }}>
-                            Select Categories:
-                          </Typography>
-
-                          {/* Existing Categories */}
-                          {existingCategories.length > 0 && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{
-                                fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                              }}>
-                                Existing categories:
-                              </Typography>
-                              <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {existingCategories.map((category) => (
-                                  <Chip
-                                    key={category}
-                                    label={category}
-                                    onClick={() => {
-                                      if (!selectedCategories.includes(category)) {
-                                        setSelectedCategories([...selectedCategories, category]);
-                                      }
-                                    }}
-                                    color={selectedCategories.includes(category) ? "primary" : "default"}
-                                    variant={selectedCategories.includes(category) ? "filled" : "outlined"}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                                    }}
-                                  />
-                                ))}
-                              </Box>
-                            </Box>
-                          )}
-
-                          {/* Add New Category */}
-                          <Box sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column', sm: 'row' },
-                            alignItems: { xs: 'stretch', sm: 'center' },
-                            gap: 1
-                          }}>
-                            <TextField
-                              size="small"
-                              label="Add New Category"
-                              value={categoryInput}
-                              onChange={e => setCategoryInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && categoryInput.trim()) {
-                                  const newCategory = categoryInput.trim();
-                                  if (!selectedCategories.includes(newCategory)) {
-                                    setSelectedCategories([...selectedCategories, newCategory]);
-                                  }
-                                  setCategoryInput('');
-                                }
-                              }}
-                              sx={{
-                                flexGrow: 1,
-                                '& .MuiInputBase-input': { fontSize: { xs: '0.875rem', sm: '1rem' } }
-                              }}
-                            />
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => {
-                                if (categoryInput.trim()) {
-                                  const newCategory = categoryInput.trim();
-                                  if (!selectedCategories.includes(newCategory)) {
-                                    setSelectedCategories([...selectedCategories, newCategory]);
-                                  }
-                                  setCategoryInput('');
-                                }
-                              }}
-                              sx={{
-                                minHeight: { xs: 44, sm: 40 },
-                                fontSize: { xs: '0.875rem', sm: '0.875rem' }
-                              }}
-                            >
-                              Add
-                            </Button>
-                          </Box>
-
-                          {/* Selected Categories */}
-                          {selectedCategories.length > 0 && (
-                            <Box sx={{ mt: 2 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{
-                                fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                              }}>
-                                Selected categories:
-                              </Typography>
-                              <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {selectedCategories.map((category, index) => (
-                                  <Chip
-                                    key={`${category}-${index}`}
-                                    label={category}
-                                    onDelete={() => setSelectedCategories(selectedCategories.filter((_, i) => i !== index))}
-                                    color="primary"
-                                    variant="filled"
-                                    sx={{
-                                      fontSize: { xs: '0.75rem', sm: '0.75rem' }
-                                    }}
-                                  />
-                                ))}
-                              </Box>
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-                    </DialogContent>
-                    <DialogActions sx={{
-                      p: { xs: 1.5, sm: 2 },
-                      flexDirection: { xs: 'column', sm: 'row' },
-                      gap: { xs: 1, sm: 0 }
-                    }}>
-                      <Button
-                        onClick={handleAddExpense}
-                        variant="contained"
-                        fullWidth={isMobile}
-                        size="small"
-                        sx={{
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                          minHeight: { xs: 44, sm: 32 }
-                        }}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setEditOpen(false);
-                          setEditId(null);
-                          setAmount('');
-                          setDescription('');
-                          setDate('');
-                          setSelectedCategories([]);
-                        }}
-                        fullWidth={isMobile}
-                        size="small"
-                        sx={{
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                          minHeight: { xs: 44, sm: 32 }
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
-
-                  {/* Expense List Component */}
                   <ExpenseList
                     expenses={expenses}
-                    onEdit={(expense) => {
-                      setEditId(expense.id);
-                      setAmount(expense.amount.toString());
-                      setDescription(expense.description);
-                      setSelectedCategories(expense.categories || []);
-                      setDate(expense.date);
-                      setEditOpen(true);
-                    }}
+                    onEdit={handleOpenEditExpense}
                     onDelete={handleDelete}
                   />
                 </>
@@ -736,7 +254,6 @@ export default function App() {
             } />
           </Routes>
 
-          {/* Footer Component */}
           <Footer />
         </Container>
       </BrowserRouter>
